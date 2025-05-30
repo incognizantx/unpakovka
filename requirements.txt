@@ -1,0 +1,4 @@
+pefile
+subprocess
+unipacker
+pyfiglet
