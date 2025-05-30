@@ -34,13 +34,7 @@ def is_packed(pe):
     packers = ["UPX", "aspack"]
     for packer in packers:
         if packer.encode() in pe.get_data():
-            return 'True,', packer
-
-    # Check for high entropy in sections
-    for section in pe.sections:
-        entropy = calculate_entropy(section.get_data())
-        if entropy > 6.5:
-            return "Likely packed with", f"entropy: {entropy}"
+            return True, packer
 
     return False, ''
 
@@ -62,7 +56,7 @@ def analyze_file(file_path):
 
         print(f"\nFile: {Fore.LIGHTBLUE_EX}{abspath(file_path)}")
         print(f"{Fore.WHITE}Architecture: {Fore.LIGHTGREEN_EX}{arch}")
-        print(f"{Fore.WHITE}Packed: {Fore.GREEN if packed[0] else Fore.RED}{packed[0]} {packed[1]}")
+        print(f"{Fore.WHITE}Packed: {Fore.GREEN if packed[0] else Fore.RED}{packed[0]}{',' if packed[0] else ''} {packed[1].capitalize() if packed[1] == 'aspack' else packed[1]}")
         print(f"{Fore.WHITE}Entropy: {entropy:.4f}")
 
         print(f"\n{Fore.CYAN}Section Names:")
@@ -87,35 +81,29 @@ def decompress(file_path, output_file_path, packer):
         return
 
     try:
-        # Construct the UPX command.  This assumes that the UPX executable
-        # is named "upx" and is in the system's PATH.  You might need to
-        # adjust this depending on your UPX installation.
         match packer:
             case 'UPX':
-                command = f"upx.exe -d {file_path} -o {output_file_path}"
+                command = f'upx.exe -d {file_path} -o "decompressed files"\\{output_file_path}'
             case 'aspack':
-                command = f"unipacker {file_path} -d {output_file_path}"
+                command = f'unipacker {file_path} -d "decompressed files"\\{output_file_path}'
             case '':
                 print(f'File is not packed by {Fore.LIGHTRED_EX}UPX {Fore.WHITE}or {Fore.LIGHTRED_EX}AsPack{Fore.WHITE}')
                 return
 
 
         print(f"Running command: {command}")
-        # Run UPX as a subprocess.
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
 
-        # Wait for the process to complete and get the output.
         stdout, stderr = process.communicate()
 
-        # Print the output from UPX.  This can be helpful for debugging.
         # print("UPX stdout:")
-        # print(stdout.decode("utf-8", errors='ignore'))
+        print(stdout.decode("utf-8", errors='ignore'))
         # print("UPX stderr:")
-        # print(stderr.decode("utf-8", errors='ignore'))
+        print(stderr.decode("utf-8", errors='ignore'))
         if 'FileAlreadyExistsException' in stderr.decode("utf-8", errors='ignore'):
             print(f"\n{Fore.RED}File {output_file_path} already exists{Fore.WHITE}")
 
@@ -138,7 +126,7 @@ if __name__ == "__main__":
     else:
         match sys.argv[1]:
             case '-h':
-                print("HEEEEEEEEEEEEELP!")
+                welcome()
                 sys.exit(1)
             case '-a':
                 try:
